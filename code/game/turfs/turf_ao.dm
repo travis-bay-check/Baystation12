@@ -35,7 +35,7 @@
 	var/image/I = image('icons/turf/flooring/shadows.dmi', cstr, dir = 1 << (i-1))
 	I.alpha = WALL_AO_ALPHA
 	I.blend_mode = BLEND_OVERLAY
-	I.appearance_flags = RESET_ALPHA|RESET_COLOR|TILE_BOUND
+	I.appearance_flags = DEFAULT_APPEARANCE_FLAGS | RESET_ALPHA|RESET_COLOR|TILE_BOUND
 	I.layer = AO_LAYER
 	// If there's an offset, counteract it.
 	if (px || py || pz || pw)
@@ -74,13 +74,13 @@
 	}
 
 #define CUT_AO(TARGET, AO_LIST) \
-	if (AO_LIST) { \
+	if (TARGET && AO_LIST) { \
 		TARGET.overlays -= AO_LIST; \
 		AO_LIST.Cut(); \
 	}
 
 #define REGEN_AO(TARGET, AO_LIST, NEIGHBORS) \
-	if (permit_ao && NEIGHBORS != AO_ALL_NEIGHBORS) { \
+	if (permit_ao && TARGET && NEIGHBORS != AO_ALL_NEIGHBORS) { \
 		var/corner;\
 		PROCESS_AO_CORNER(AO_LIST, NEIGHBORS, 1, NORTHWEST); \
 		PROCESS_AO_CORNER(AO_LIST, NEIGHBORS, 2, SOUTHEAST); \

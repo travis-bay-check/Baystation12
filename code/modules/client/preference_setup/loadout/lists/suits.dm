@@ -55,6 +55,10 @@
 	path = /obj/item/clothing/suit/storage/hazardvest
 	flags = GEAR_HAS_TYPE_SELECTION
 
+/datum/gear/suit/highvis
+	display_name = "high-visibility jacket"
+	path = /obj/item/clothing/suit/storage/toggle/highvis
+
 /datum/gear/suit/hoodie
 	display_name = "hoodie, colour select"
 	path = /obj/item/clothing/suit/storage/hooded/hoodie
@@ -136,7 +140,7 @@
 
 /datum/gear/suit/medcoat/New()
 	..()
-	gear_tweaks += new/datum/gear_tweak/path/specified_types_args(/obj/item/clothing/suit/storage/toggle/fr_jacket, /obj/item/clothing/suit/storage/toggle/fr_jacket/ems, /obj/item/clothing/suit/surgicalapron)
+	gear_tweaks += new/datum/gear_tweak/path/specified_types_args(/obj/item/clothing/suit/storage/toggle/fr_jacket, /obj/item/clothing/suit/storage/toggle/fr_jacket/ems, /obj/item/clothing/suit/surgicalapron, /obj/item/clothing/suit/storage/toggle/fr_jacket/emrs)
 
 /datum/gear/suit/trenchcoat
 	display_name = "trenchcoat selection"
@@ -150,3 +154,13 @@
 	trenchcoats += /obj/item/clothing/suit/storage/det_trench/grey
 	trenchcoats += /obj/item/clothing/suit/leathercoat
 	gear_tweaks += new/datum/gear_tweak/path/specified_types_list(trenchcoats)
+
+
+/datum/gear/suit/pullover
+	display_name = "sweater, pullover"
+	path = /obj/item/clothing/suit/storage/pullover
+
+
+/datum/gear/suit/zipper
+	display_name = "sweater, zip up"
+	path = /obj/item/clothing/suit/storage/toggle/zipper

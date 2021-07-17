@@ -83,10 +83,18 @@
 		if(submerged(depth))
 			extinguish(no_message = TRUE)
 
+/obj/item/clothing/mask/smokable/proc/is_wet()
+	if(ishuman(loc))
+		var/mob/living/carbon/human/C = loc
+		return locate(/datum/reagent/water) in C.touching.reagent_list
+
 /obj/item/clothing/mask/smokable/proc/light(var/flavor_text = "[usr] lights the [name].")
 	if(QDELETED(src))
 		return
 	if(!lit)
+		if(is_wet())
+			to_chat(usr, "<span class='warning'>You are too wet to light \the [src].</span>")
+			return
 		if(submerged())
 			to_chat(usr, "<span class='warning'>You cannot light \the [src] underwater.</span>")
 			return
@@ -119,15 +127,15 @@
 	set_light(0)
 	update_icon()
 
-/obj/item/clothing/mask/smokable/attackby(var/obj/item/weapon/W, var/mob/user)
+/obj/item/clothing/mask/smokable/attackby(var/obj/item/W, var/mob/user)
 	..()
 	if(isflamesource(W) || is_hot(W))
 		var/text = matchmes
-		if(istype(W, /obj/item/weapon/flame/match))
+		if(istype(W, /obj/item/flame/match))
 			text = matchmes
-		else if(istype(W, /obj/item/weapon/flame/lighter/zippo))
+		else if(istype(W, /obj/item/flame/lighter/zippo))
 			text = zippomes
-		else if(istype(W, /obj/item/weapon/flame/lighter))
+		else if(istype(W, /obj/item/flame/lighter))
 			text = lightermes
 		else if(isWelder(W))
 			text = weldermes
@@ -203,6 +211,8 @@
 			var/mob/living/M = loc
 			if (!no_message)
 				to_chat(M, "<span class='notice'>Your [name] goes out.</span>")
+			// if the mob has free hands, put the cig in them
+			M.put_in_any_hand_if_possible(butt)
 		qdel(src)
 
 /obj/item/clothing/mask/smokable/cigarette/menthol
@@ -293,11 +303,11 @@
 	icon_state = "woodbutt"
 	matter = list(MATERIAL_WOOD = 1)
 
-/obj/item/clothing/mask/smokable/cigarette/attackby(var/obj/item/weapon/W, var/mob/user)
+/obj/item/clothing/mask/smokable/cigarette/attackby(var/obj/item/W, var/mob/user)
 	..()
 
-	if(istype(W, /obj/item/weapon/melee/energy/sword))
-		var/obj/item/weapon/melee/energy/sword/S = W
+	if(istype(W, /obj/item/melee/energy/sword))
+		var/obj/item/melee/energy/sword/S = W
 		if(S.active)
 			light("<span class='warning'>[user] swings their [W], barely missing their nose. They light their [name] in the process.</span>")
 
@@ -315,7 +325,7 @@
 		return 1
 	return ..()
 
-/obj/item/clothing/mask/smokable/cigarette/afterattack(obj/item/weapon/reagent_containers/glass/glass, var/mob/user, proximity)
+/obj/item/clothing/mask/smokable/cigarette/afterattack(obj/item/reagent_containers/glass/glass, var/mob/user, proximity)
 	..()
 	if(!proximity)
 		return
@@ -334,7 +344,7 @@
 
 /obj/item/clothing/mask/smokable/cigarette/attack_self(var/mob/user)
 	if(lit == 1)
-		user.visible_message("<span class='notice'>[user] calmly drops and treads on the lit [src], putting it out instantly.</span>")
+		user.visible_message("<span class='notice'>[user] puts out the lit [src].</span>")
 		extinguish(no_message = 1)
 	return ..()
 
@@ -407,7 +417,7 @@
 	desc = "A manky old cigar butt."
 	icon_state = "cigarbutt"
 
-/obj/item/clothing/mask/smokable/cigarette/cigar/attackby(var/obj/item/weapon/W, var/mob/user)
+/obj/item/clothing/mask/smokable/cigarette/cigar/attackby(var/obj/item/W, var/mob/user)
 	..()
 
 	user.update_inv_wear_mask(0)
@@ -498,14 +508,14 @@
 		reagents.clear_reagents()
 		SetName("empty [initial(name)]")
 
-/obj/item/clothing/mask/smokable/pipe/attackby(var/obj/item/weapon/W, var/mob/user)
-	if(istype(W, /obj/item/weapon/melee/energy/sword))
+/obj/item/clothing/mask/smokable/pipe/attackby(var/obj/item/W, var/mob/user)
+	if(istype(W, /obj/item/melee/energy/sword))
 		return
 
 	..()
 
-	if (istype(W, /obj/item/weapon/reagent_containers/food/snacks))
-		var/obj/item/weapon/reagent_containers/food/snacks/grown/G = W
+	if (istype(W, /obj/item/reagent_containers/food/snacks))
+		var/obj/item/reagent_containers/food/snacks/grown/G = W
 		if (!G.dry)
 			to_chat(user, "<span class='notice'>[G] must be dried before you stuff it into [src].</span>")
 			return
@@ -518,13 +528,13 @@
 		SetName("[G.name]-packed [initial(name)]")
 		qdel(G)
 
-	else if(istype(W, /obj/item/weapon/flame/lighter))
-		var/obj/item/weapon/flame/lighter/L = W
+	else if(istype(W, /obj/item/flame/lighter))
+		var/obj/item/flame/lighter/L = W
 		if(L.lit)
 			light("<span class='notice'>[user] manages to light their [name] with [W].</span>")
 
-	else if(istype(W, /obj/item/weapon/flame/match))
-		var/obj/item/weapon/flame/match/M = W
+	else if(istype(W, /obj/item/flame/match))
+		var/obj/item/flame/match/M = W
 		if(M.lit)
 			light("<span class='notice'>[user] lights their [name] with their [W].</span>")
 

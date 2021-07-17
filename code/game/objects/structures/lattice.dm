@@ -3,8 +3,8 @@
 	desc = "A lightweight support lattice."
 	icon = 'icons/obj/smoothlattice.dmi'
 	icon_state = "lattice0"
-	density = 0
-	anchored = 1
+	density = FALSE
+	anchored = TRUE
 	w_class = ITEM_SIZE_NORMAL
 	layer = LATTICE_LAYER
 	color = COLOR_STEEL
@@ -16,6 +16,7 @@
 
 /obj/structure/lattice/Initialize(mapload, var/new_material)
 	. = ..()
+	DELETE_IF_DUPLICATE_OF(/obj/structure/lattice)
 	if(!(istype(src.loc, /turf/space) || istype(src.loc, /turf/simulated/open)))
 		return INITIALIZE_HINT_QDEL
 	if(!new_material)
@@ -28,10 +29,6 @@
 	desc = "A lightweight support [material.display_name] lattice."
 	color =  material.icon_colour
 
-	for(var/obj/structure/lattice/LAT in loc)
-		if(LAT != src)
-			crash_with("Found multiple lattices at '[log_info_line(loc)]'")
-			qdel(LAT)
 	update_icon()
 	if(!mapload)
 		update_neighbors()
@@ -64,12 +61,12 @@
 		T.attackby(C, user) //BubbleWrap - hand this off to the underlying turf instead
 		return
 	if(isWelder(C))
-		var/obj/item/weapon/weldingtool/WT = C
+		var/obj/item/weldingtool/WT = C
 		if(WT.remove_fuel(0, user))
 			deconstruct(user)
 		return
-	if(istype(C, /obj/item/weapon/gun/energy/plasmacutter))
-		var/obj/item/weapon/gun/energy/plasmacutter/cutter = C
+	if(istype(C, /obj/item/gun/energy/plasmacutter))
+		var/obj/item/gun/energy/plasmacutter/cutter = C
 		if(!cutter.slice(user))
 			return
 		deconstruct(user)

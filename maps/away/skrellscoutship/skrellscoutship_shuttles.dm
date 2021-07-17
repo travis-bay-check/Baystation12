@@ -48,7 +48,7 @@
 		/area/ship/skrellscoutship/maintenance/power, /area/ship/skrellscoutship/hangar, /area/ship/skrellscoutship/command/armory,
 		/area/ship/skrellscoutship/dock, /area/ship/skrellscoutship/maintenance/atmos, /area/ship/skrellscoutship/robotics, 
 		/area/ship/skrellscoutship/crew/rec 
-		)
+	)
 	defer_initialisation = TRUE
 	knockdown = FALSE
 	flags = SHUTTLE_FLAGS_PROCESS
@@ -78,13 +78,16 @@
 	base_turf = /turf/simulated/floor/tiled/skrell
 	movable_flags = MOVABLE_FLAG_EFFECTMOVE
 
+/obj/effect/shuttle_landmark/skrellscout/dock
+	name = "Skrellian Scout Docking Port"
+	landmark_tag = "nav_skrellscout_dock"
+
 /obj/effect/shuttle_landmark/skrellscoutshuttle/altdock
 	name = "Docking Port"
 	landmark_tag = "nav_skrellscoutsh_altdock"
 
-
 /turf/simulated/floor/shuttle_ceiling/skrell
-	color = COLOR_HULL
+	color = COLOR_SOL
 
 /turf/simulated/floor/shuttle_ceiling/skrell/air
 	initial_gas = list(GAS_OXYGEN = MOLES_O2STANDARD, GAS_NITROGEN = MOLES_N2STANDARD)

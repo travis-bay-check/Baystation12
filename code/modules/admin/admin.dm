@@ -31,7 +31,7 @@ var/global/floorIsLava = 0
 ///////////////////////////////////////////////////////////////////////////////////////////////Panels
 
 /datum/admins/proc/show_player_panel(var/mob/M in SSmobs.mob_list)
-	set category = "Admin"
+	set category = null
 	set name = "Show Player Panel"
 	set desc="Edit player (respawn, ban, heal, etc)"
 
@@ -74,6 +74,7 @@ var/global/floorIsLava = 0
 		[admin_jump_link(M, src)]\] <br>
 		<b>Mob type:</b> [M.type]<br>
 		<b>Inactivity time:</b> [M.client ? "[M.client.inactivity/600] minutes" : "Logged out"]<br/><br/>
+		<A href='?src=\ref[src];paralyze=\ref[M]'>PARALYZE</A> |
 		<A href='?src=\ref[src];boot2=\ref[M]'>Kick</A> |
 		<A href='?_src_=holder;warn=[last_ckey]'>Warn</A> |
 		<A href='?src=\ref[src];newban=\ref[M];last_key=[last_ckey]'>Ban</A> |
@@ -84,6 +85,7 @@ var/global/floorIsLava = 0
 	if(M.client)
 		body += "| <A HREF='?src=\ref[src];sendtoprison=\ref[M]'>Prison</A> | "
 		body += "<A HREF='?src=\ref[src];reloadsave=\ref[M]'>Reload Save</A> | "
+		body += "<A HREF='?src=\ref[src];reloadchar=\ref[M]'>Reload Character</A> | "
 		var/muted = M.client.prefs.muted
 		body += {"<br><b>Mute: </b>
 			\[<A href='?src=\ref[src];mute=\ref[M];mute_type=[MUTE_IC]'><font color='[(muted & MUTE_IC)?"red":"blue"]'>IC</font></a> |
@@ -162,7 +164,8 @@ var/global/floorIsLava = 0
 				body += {"<A href='?src=\ref[src];makeai=\ref[M]'>Make AI</A> |
 					<A href='?src=\ref[src];makerobot=\ref[M]'>Make Robot</A> |
 					<A href='?src=\ref[src];makealien=\ref[M]'>Make Alien</A> |
-					<A href='?src=\ref[src];makeslime=\ref[M]'>Make slime</A>
+					<A href='?src=\ref[src];makeslime=\ref[M]'>Make Slime</A> |
+					<A href='?src=\ref[src];makezombie=\ref[M]'>Make Zombie</A> |
 				"}
 
 			//Simple Animals
@@ -219,7 +222,8 @@ var/global/floorIsLava = 0
 	body += {"<br><br>
 			<b>Other actions:</b>
 			<br>
-			<A href='?src=\ref[src];forcespeech=\ref[M]'>Forcesay</A>
+			<A href='?src=\ref[src];forcespeech=\ref[M]'>Forcesay</A> |
+			<a href='?src=\ref[src];cloneother=\ref[M]'>Clone Other</a>
 			"}
 	if (M.client)
 		body += {" |
@@ -270,7 +274,7 @@ var/global/floorIsLava = 0
 	dat += "<B>Player notes</B><HR>"
 	var/savefile/S=new("data/player_notes.sav")
 	var/list/note_keys
-	S >> note_keys
+	from_save(S, note_keys)
 
 	if(filter_term)
 		for(var/t in note_keys)
@@ -297,7 +301,7 @@ var/global/floorIsLava = 0
 /datum/admins/proc/player_has_info(var/key as text)
 	var/savefile/info = new("data/player_saves/[copytext(key, 1, 2)]/[key]/info.sav")
 	var/list/infos
-	info >> infos
+	from_save(info, infos)
 	if(!infos || !infos.len) return 0
 	else return 1
 
@@ -323,7 +327,7 @@ var/global/floorIsLava = 0
 
 	var/savefile/info = new("data/player_saves/[copytext(key, 1, 2)]/[key]/info.sav")
 	var/list/infos
-	info >> infos
+	from_save(info, infos)
 	if(!infos)
 		dat += "No information found on the given key.<br>"
 	else
@@ -341,7 +345,7 @@ var/global/floorIsLava = 0
 			if(I.author == usr.key || I.author == "Adminbot" || ishost(usr))
 				dat += "<A href='?src=\ref[src];remove_player_info=[key];remove_index=[i]'>Remove</A>"
 			dat += "<hr></li>"
-		if(update_file) info << infos
+		if(update_file) to_save(info, infos)
 
 	dat += "</ul><br><A href='?src=\ref[src];add_player_info=[key]'>Add Comment</A><br>"
 
@@ -388,6 +392,9 @@ var/global/floorIsLava = 0
 	if (!istype(src,/datum/admins))
 		to_chat(usr, "Error: you are not an admin!")
 		return
+
+	var/datum/feed_network/torch_network = news_network[1] //temp change until the UI can be updated to support switching networks.
+
 	var/dat
 	dat = text("<HEAD><TITLE>Admin Newscaster</TITLE></HEAD><H3>Admin Newscaster Unit</H3>")
 
@@ -397,7 +404,7 @@ var/global/floorIsLava = 0
 				<BR>Feed channels and stories entered through here will be uneditable and handled as official news by the rest of the units.
 				<BR>Note that this panel allows full freedom over the news network, there are no constrictions except the few basic ones. Don't break things!
 			"}
-			if(news_network.wanted_issue)
+			if(torch_network.wanted_issue)
 				dat+= "<HR><A href='?src=\ref[src];ac_view_wanted=1'>Read Wanted Issue</A>"
 
 			dat+= {"<HR><BR><A href='?src=\ref[src];ac_create_channel=1'>Create Feed Channel</A>
@@ -407,7 +414,7 @@ var/global/floorIsLava = 0
 			"}
 
 			var/wanted_already = 0
-			if(news_network.wanted_issue)
+			if(torch_network.wanted_issue)
 				wanted_already = 1
 
 			dat+={"<HR><B>Feed Security functions:</B><BR>
@@ -418,10 +425,10 @@ var/global/floorIsLava = 0
 			"}
 		if(1)
 			dat+= "Feed Channels<HR>"
-			if( isemptylist(news_network.network_channels) )
+			if( !length(torch_network.network_channels) )
 				dat+="<I>No active channels found...</I>"
 			else
-				for(var/datum/feed_channel/CHANNEL in news_network.network_channels)
+				for(var/datum/feed_channel/CHANNEL in torch_network.network_channels)
 					if(CHANNEL.is_admin_channel)
 						dat+="<B><FONT style='BACKGROUND-COLOR: LightGreen'><A href='?src=\ref[src];ac_show_channel=\ref[CHANNEL]'>[CHANNEL.channel_name]</A></FONT></B><BR>"
 					else
@@ -468,7 +475,7 @@ var/global/floorIsLava = 0
 			if(src.admincaster_feed_channel.channel_name =="" || src.admincaster_feed_channel.channel_name == "\[REDACTED\]")
 				dat+="<FONT COLOR='maroon'>Invalid channel name.</FONT><BR>"
 			var/check = 0
-			for(var/datum/feed_channel/FC in news_network.network_channels)
+			for(var/datum/feed_channel/FC in torch_network.network_channels)
 				if(FC.channel_name == src.admincaster_feed_channel.channel_name)
 					check = 1
 					break
@@ -483,7 +490,7 @@ var/global/floorIsLava = 0
 					No further feed story additions are allowed while the D-Notice is in effect.<BR><BR>
 				"}
 			else
-				if( isemptylist(src.admincaster_feed_channel.messages) )
+				if( !length(admincaster_feed_channel.messages) )
 					dat+="<I>No feed messages found in channel...</I><BR>"
 				else
 					var/i = 0
@@ -505,10 +512,10 @@ var/global/floorIsLava = 0
 				Keep in mind that users attempting to view a censored feed will instead see the \[REDACTED\] tag above it.</FONT>
 				<HR>Select Feed channel to get Stories from:<BR>
 			"}
-			if(isemptylist(news_network.network_channels))
+			if(!length(torch_network.network_channels))
 				dat+="<I>No feed channels found active...</I><BR>"
 			else
-				for(var/datum/feed_channel/CHANNEL in news_network.network_channels)
+				for(var/datum/feed_channel/CHANNEL in torch_network.network_channels)
 					dat+="<A href='?src=\ref[src];ac_pick_censor_channel=\ref[CHANNEL]'>[CHANNEL.channel_name]</A> [(CHANNEL.censored) ? ("<FONT COLOR='red'>***</FONT>") : null ]<BR>"
 			dat+="<BR><A href='?src=\ref[src];ac_setScreen=[0]'>Cancel</A>"
 		if(11)
@@ -518,10 +525,10 @@ var/global/floorIsLava = 0
 				morale, integrity or disciplinary behaviour. A D-Notice will render a channel unable to be updated by anyone, without deleting any feed
 				stories it might contain at the time. You can lift a D-Notice if you have the required access at any time.</FONT><HR>
 			"}
-			if(isemptylist(news_network.network_channels))
+			if(!length(torch_network.network_channels))
 				dat+="<I>No feed channels found active...</I><BR>"
 			else
-				for(var/datum/feed_channel/CHANNEL in news_network.network_channels)
+				for(var/datum/feed_channel/CHANNEL in torch_network.network_channels)
 					dat+="<A href='?src=\ref[src];ac_pick_d_notice=\ref[CHANNEL]'>[CHANNEL.channel_name]</A> [(CHANNEL.censored) ? ("<FONT COLOR='red'>***</FONT>") : null ]<BR>"
 
 			dat+="<BR><A href='?src=\ref[src];ac_setScreen=[0]'>Back</A>"
@@ -530,7 +537,7 @@ var/global/floorIsLava = 0
 				<B>[src.admincaster_feed_channel.channel_name]: </B><FONT SIZE=1>\[ created by: <FONT COLOR='maroon'>[src.admincaster_feed_channel.author]</FONT> \]</FONT><BR>
 				<FONT SIZE=2><A href='?src=\ref[src];ac_censor_channel_author=\ref[src.admincaster_feed_channel]'>[(src.admincaster_feed_channel.author=="\[REDACTED\]") ? ("Undo Author censorship") : ("Censor channel Author")]</A></FONT><HR>
 			"}
-			if( isemptylist(src.admincaster_feed_channel.messages) )
+			if( !length(admincaster_feed_channel.messages) )
 				dat+="<I>No feed messages found in channel...</I><BR>"
 			else
 				for(var/datum/feed_message/MESSAGE in src.admincaster_feed_channel.messages)
@@ -550,7 +557,7 @@ var/global/floorIsLava = 0
 					No further feed story additions are allowed while the D-Notice is in effect.<BR><BR>
 				"}
 			else
-				if( isemptylist(src.admincaster_feed_channel.messages) )
+				if( !length(admincaster_feed_channel.messages) )
 					dat+="<I>No feed messages found in channel...</I><BR>"
 				else
 					for(var/datum/feed_message/MESSAGE in src.admincaster_feed_channel.messages)
@@ -561,7 +568,7 @@ var/global/floorIsLava = 0
 			dat+="<B>Wanted Issue Handler:</B>"
 			var/wanted_already = 0
 			var/end_param = 1
-			if(news_network.wanted_issue)
+			if(torch_network.wanted_issue)
 				wanted_already = 1
 				end_param = 2
 			if(wanted_already)
@@ -572,7 +579,7 @@ var/global/floorIsLava = 0
 				<A href='?src=\ref[src];ac_set_wanted_desc=1'>Description</A>: [src.admincaster_feed_message.body] <BR>
 			"}
 			if(wanted_already)
-				dat+="<B>Wanted Issue created by:</B><FONT COLOR='green'> [news_network.wanted_issue.backup_author]</FONT><BR>"
+				dat+="<B>Wanted Issue created by:</B><FONT COLOR='green'> [torch_network.wanted_issue.backup_author]</FONT><BR>"
 			else
 				dat+="<B>Wanted Issue will be created under prosecutor:</B><FONT COLOR='green'> [src.admincaster_signature]</FONT><BR>"
 			dat+="<BR><A href='?src=\ref[src];ac_submit_wanted=[end_param]'>[(wanted_already) ? ("Edit Issue") : ("Submit")]</A>"
@@ -598,13 +605,13 @@ var/global/floorIsLava = 0
 			"}
 		if(18)
 			dat+={"
-				<B><FONT COLOR ='maroon'>-- STATIONWIDE WANTED ISSUE --</B></FONT><BR><FONT SIZE=2>\[Submitted by: <FONT COLOR='green'>[news_network.wanted_issue.backup_author]</FONT>\]</FONT><HR>
-				<B>Criminal</B>: [news_network.wanted_issue.author]<BR>
-				<B>Description</B>: [news_network.wanted_issue.body]<BR>
+				<B><FONT COLOR ='maroon'>-- STATIONWIDE WANTED ISSUE --</B></FONT><BR><FONT SIZE=2>\[Submitted by: <FONT COLOR='green'>[torch_network.wanted_issue.backup_author]</FONT>\]</FONT><HR>
+				<B>Criminal</B>: [torch_network.wanted_issue.author]<BR>
+				<B>Description</B>: [torch_network.wanted_issue.body]<BR>
 				<B>Photo:</B>:
 			"}
-			if(news_network.wanted_issue.img)
-				send_rsc(usr, news_network.wanted_issue.img, "tmp_photow.png")
+			if(torch_network.wanted_issue.img)
+				send_rsc(usr, torch_network.wanted_issue.img, "tmp_photow.png")
 				dat+="<BR><img src='tmp_photow.png' width = '180'>"
 			else
 				dat+="None"
@@ -650,7 +657,6 @@ var/global/floorIsLava = 0
 	dat += {"
 		<BR>
 		<A href='?src=\ref[src];create_object=1'>Create Object</A><br>
-		<A href='?src=\ref[src];quick_create_object=1'>Quick Create Object</A><br>
 		<A href='?src=\ref[src];create_turf=1'>Create Turf</A><br>
 		<A href='?src=\ref[src];create_mob=1'>Create Mob</A><br>
 		<br><A href='?src=\ref[src];vsc=airflow'>Edit Airflow Settings</A><br>
@@ -754,9 +760,9 @@ var/global/floorIsLava = 0
 
 	config.aooc_allowed = !(config.aooc_allowed)
 	if (config.aooc_allowed)
-		to_world("<B>The AOOC channel has been globally enabled!</B>")
+		communicate_broadcast(/decl/communication_channel/aooc, "The AOOC channel has been globally enabled!", TRUE)
 	else
-		to_world("<B>The AOOC channel has been globally disabled!</B>")
+		communicate_broadcast(/decl/communication_channel/aooc, "The AOOC channel has been globally disabled!", TRUE)
 	log_and_message_admins("toggled AOOC.")
 	SSstatistics.add_field_details("admin_verb","TAOOC") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
@@ -814,10 +820,9 @@ var/global/floorIsLava = 0
 	if(!check_rights(R_ADMIN))
 		return
 
-	//BYOND hates actually changing world.visibility at runtime, so let's just change if we give it the hub password.
-	world.update_hub_visibility() //proc defined in hub.dm
-	var/long_message = "toggled hub visibility. The server is now [GLOB.visibility_pref ? "visible" : "invisible"] ([GLOB.visibility_pref])."
-	if (GLOB.visibility_pref && !world.reachable)
+	world.update_hub_visibility(TRUE)
+	var/long_message = "Updated hub visibility. The server is now [config.hub_visible ? "visible" : "invisible"]."
+	if (config.hub_visible && !world.reachable)
 		message_admins("WARNING: The server will not show up on the hub because byond is detecting that a firewall is blocking incoming connections.")
 
 	send2adminirc("[key_name(src)]" + long_message)
@@ -838,21 +843,38 @@ var/global/floorIsLava = 0
 	set desc="Start the round RIGHT NOW"
 	set name="Start Now"
 	if(GAME_STATE < RUNLEVEL_LOBBY)
-		to_chat(usr, "<span class='bigdanger'>Unable to start the game as it is not yet set up.</span>")
+		to_chat(usr, FONT_LARGE(SPAN_DANGER("Unable to start the game as it is not yet set up.")))
 		SSticker.start_ASAP = !SSticker.start_ASAP
 		if(SSticker.start_ASAP)
-			to_chat(usr, "<span class='bigwarning'>The game will begin as soon as possible.</span>")
+			to_chat(usr, FONT_LARGE(SPAN_WARNING("The game will begin as soon as possible.")))
+			log_and_message_admins("will begin the game as soon as possible.")
 		else
-			to_chat(usr, "<span class='bigwarning'>The game will begin as normal.</span>")
+			to_chat(usr, FONT_LARGE(SPAN_WARNING("The game will begin as normal.")))
+			log_and_message_admins("will begin the game as normal.")
 		return 0
 	if(SSticker.start_now())
-		log_admin("[usr.key] has started the game.")
-		message_admins("<font color='blue'>[usr.key] has started the game.</font>")
+		log_and_message_admins("has started the game.")
 		SSstatistics.add_field_details("admin_verb","SN") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 		return 1
 	else
 		to_chat(usr, "<span class='bigwarning'>Error: Start Now: Game has already started.</span>")
 		return 0
+
+/datum/admins/proc/endnow()
+	set category = "Server"
+	set desc = "End the round immediately."
+	set name = "End Round"
+
+	var/check = alert("This will immediately end the current round. Are you sure?", "End Game", "Yes", "No") == "Yes"
+
+	if (!check)
+		return
+
+	if (GAME_STATE > RUNLEVEL_LOBBY)
+		SSticker.forced_end = TRUE
+		log_and_message_admins("has ended the round.")
+	else
+		to_chat(usr, FONT_LARGE(SPAN_WARNING("You cannot end the round before it's begun!")))
 
 /datum/admins/proc/toggleenter()
 	set category = "Server"
@@ -867,19 +889,6 @@ var/global/floorIsLava = 0
 	world.update_status()
 	SSstatistics.add_field_details("admin_verb","TE") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
-/datum/admins/proc/toggleAI()
-	set category = "Server"
-	set desc="People can't be AI"
-	set name="Toggle AI"
-	config.allow_ai = !( config.allow_ai )
-	if (!( config.allow_ai ))
-		to_world("<B>The AI job is no longer chooseable.</B>")
-	else
-		to_world("<B>The AI job is chooseable now.</B>")
-	log_admin("[key_name(usr)] toggled AI allowed.")
-	world.update_status()
-	SSstatistics.add_field_details("admin_verb","TAI") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
-
 /datum/admins/proc/toggleaban()
 	set category = "Server"
 	set desc="Respawn basically"
@@ -892,29 +901,6 @@ var/global/floorIsLava = 0
 	log_and_message_admins("toggled respawn to [config.abandon_allowed ? "On" : "Off"].")
 	world.update_status()
 	SSstatistics.add_field_details("admin_verb","TR") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
-
-/datum/admins/proc/toggle_aliens()
-	set category = "Server"
-	set desc="Toggle alien mobs"
-	set name="Toggle Aliens"
-	if(!check_rights(R_ADMIN))
-		return
-
-	config.aliens_allowed = !config.aliens_allowed
-	log_admin("[key_name(usr)] toggled Aliens to [config.aliens_allowed].")
-	message_admins("[key_name_admin(usr)] toggled Aliens [config.aliens_allowed ? "on" : "off"].", 1)
-	SSstatistics.add_field_details("admin_verb","TA") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
-
-/datum/admins/proc/toggle_space_ninja()
-	set category = "Server"
-	set desc="Toggle space ninjas spawning."
-	set name="Toggle Space Ninjas"
-	if(!check_rights(R_ADMIN))
-		return
-
-	config.ninjas_allowed = !config.ninjas_allowed
-	log_and_message_admins("toggled Space Ninjas [config.ninjas_allowed ? "on" : "off"].")
-	SSstatistics.add_field_details("admin_verb","TSN") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
 /datum/admins/proc/delay()
 	set category = "Server"
@@ -1021,7 +1007,7 @@ var/global/floorIsLava = 0
 	set desc = "Spawn every possible custom closet. Do not do this on live."
 	set category = "Debug"
 
-	if(!check_rights(R_SPAWN))	
+	if(!check_rights(R_SPAWN))
 		return
 
 	if((input(usr, "Are you sure you want to spawn all these closets?", "So Many Closets") as null|anything in list("No", "Yes")) == "Yes")
@@ -1137,6 +1123,64 @@ var/global/floorIsLava = 0
 	log_and_message_admins("spawned [chosen] at ([usr.x],[usr.y],[usr.z])")
 	SSstatistics.add_field_details("admin_verb","SA") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 
+/datum/admins/proc/spawn_artifact(effect in subtypesof(/datum/artifact_effect))
+	set category = "Debug"
+	set desc = "(atom path) Spawn an artifact with a specified effect."
+	set name = "Spawn Artifact"
+
+	if (!check_rights(R_SPAWN))
+		return
+
+	var/obj/machinery/artifact/A
+	var/datum/artifact_trigger/primary_trigger
+
+	var/datum/artifact_effect/secondary_effect
+	var/datum/artifact_trigger/secondary_trigger
+
+	var/damage_type
+
+	if (ispath(effect))
+		primary_trigger = input(usr, "Choose a trigger", "Choose a trigger") as null | anything in subtypesof(/datum/artifact_trigger)
+
+		if (!ispath(primary_trigger))
+			return
+
+		var/choice = alert(usr, "Secondary effect?", "Secondary effect", "Yes", "No") == "Yes"
+
+		if (choice)
+			secondary_effect = input(usr, "Choose an effect", "Choose effect") as null | anything in subtypesof(/datum/artifact_effect)
+
+			if (!ispath(secondary_effect))
+				return
+
+			secondary_trigger = input(usr, "Choose a trigger", "Choose a trigger") as null | anything in subtypesof(/datum/artifact_trigger)
+
+			if (!ispath(secondary_trigger))
+				return
+
+		var/damage_types = list("Sharp" = DAM_SHARP, "Bullet" = DAM_BULLET, "Edge" = DAM_EDGE, "Laser" = DAM_LASER)
+		choice = input(usr, "Choose a damage effect", "Choose Damage Effect") as null | anything in damage_types | "Invincible"
+
+		if (!choice)
+			return
+
+		if (choice != "Invincible")
+			damage_type = damage_types[choice]
+
+
+		A = new(usr.loc)
+		A.my_effect = new effect(A)
+		A.my_effect.trigger = new primary_trigger(A.my_effect)
+		A.damage_type = damage_type
+		A.set_damage_description(damage_type)
+
+		if (secondary_effect)
+			A.secondary_effect = new secondary_effect
+			A.secondary_effect.trigger = new secondary_trigger
+		else
+			QDEL_NULL(A.secondary_effect)
+
+		log_and_message_admins("spawned an artifact with effects [english_list(A.my_effect, A.secondary_effect)].")
 
 /datum/admins/proc/show_traitor_panel(var/mob/M in SSmobs.mob_list)
 	set category = "Admin"
@@ -1274,7 +1318,7 @@ var/global/floorIsLava = 0
 		to_chat(usr, "<b>No AIs located</b>")//Just so you know the thing is actually working and not just ignoring you.
 
 /datum/admins/proc/show_skills(mob/M)
-	set category = "Admin"
+	set category = null
 	set name = "Skill Panel"
 
 	if (!istype(src,/datum/admins))
@@ -1288,7 +1332,7 @@ var/global/floorIsLava = 0
 	if(!istype(M))
 		return
 	var/datum/nano_module/skill_ui/NM = /datum/nano_module/skill_ui
-	if(is_admin(usr))
+	if(isadmin(usr))
 		NM = /datum/nano_module/skill_ui/admin //They get the fancy version that lets you change skills and debug stuff.
 	NM = new NM(usr, override = M.skillset)
 	NM.ui_interact(usr)
@@ -1418,8 +1462,8 @@ var/global/floorIsLava = 0
 	log_and_message_admins("attempting to force mode autospawn.")
 	SSticker.mode.process_autoantag()
 
-/datum/admins/proc/paralyze_mob(mob/H as mob in GLOB.player_list)
-	set category = "Admin"
+/datum/admins/proc/paralyze_mob(mob/living/H as mob in GLOB.player_list)
+	set category = null
 	set name = "Toggle Paralyze"
 	set desc = "Toggles paralyze state, which stuns, blinds and mutes the victim."
 
@@ -1429,13 +1473,19 @@ var/global/floorIsLava = 0
 		return
 
 	if(check_rights(R_INVESTIGATE))
-		if (H.paralysis == 0)
+		if (!H.admin_paralyzed)
 			H.paralysis = 8000
+			H.admin_paralyzed = TRUE
 			msg = "has paralyzed [key_name(H)]."
+			H.visible_message(SPAN_DEBUG("OOC: \The [H] has been paralyzed by a staff member. Please hold all interactions with them until staff have finished with them."))
+			to_chat(H, SPAN_DEBUG("OOC: You have been paralyzed by a staff member. Please refer to your currently open admin help ticket or, if you don't have one, admin help for assistance."))
 		else
 			H.paralysis = 0
+			H.admin_paralyzed = FALSE
 			msg = "has unparalyzed [key_name(H)]."
-		log_and_message_admins(msg)
+			H.visible_message(SPAN_DEBUG("OOC: \The [H] has been released from paralysis by staff. You may resume interactions with them."))
+			to_chat(H, SPAN_DEBUG("OOC: You have been released from paralysis by staff and can return to your game."))
+		log_and_message_staff(msg)
 
 
 /datum/admins/proc/sendFax()
@@ -1454,7 +1504,7 @@ var/global/floorIsLava = 0
 
 			var/replyorigin = input(src.owner, "Please specify who the fax is coming from", "Origin") as text|null
 
-			var/obj/item/weapon/paper/admin/P = new /obj/item/weapon/paper/admin( null ) //hopefully the null loc won't cause trouble for us
+			var/obj/item/paper/admin/P = new /obj/item/paper/admin( null ) //hopefully the null loc won't cause trouble for us
 			faxreply = P
 
 			P.admindatum = src
@@ -1464,9 +1514,23 @@ var/global/floorIsLava = 0
 			P.adminbrowse()
 
 
-datum/admins/var/obj/item/weapon/paper/admin/faxreply // var to hold fax replies in
+/client/proc/check_fax_history()
+	set category = "Special Verbs"
+	set name = "Check Fax History"
+	set desc = "Look up the faxes sent this round."
 
-/datum/admins/proc/faxCallback(var/obj/item/weapon/paper/admin/P, var/obj/machinery/photocopier/faxmachine/destination)
+	var/data = "<center><b>Fax History:</b></center><br>"
+
+	if(GLOB.adminfaxes)
+		for(var/obj/item/item in GLOB.adminfaxes)
+			data += "[item.name] - <a href='?_src_=holder;AdminFaxView=\ref[item]'>view message</a><br>"
+	else
+		data += "<center>No faxes yet.</center>"
+	show_browser(usr, "<HTML><HEAD><TITLE>Fax History</TITLE></HEAD><BODY>[data]</BODY></HTML>", "window=FaxHistory;size=450x400")
+
+datum/admins/var/obj/item/paper/admin/faxreply // var to hold fax replies in
+
+/datum/admins/proc/faxCallback(var/obj/item/paper/admin/P, var/obj/machinery/photocopier/faxmachine/destination)
 	var/customname = input(src.owner, "Pick a title for the report", "Title") as text|null
 
 	P.SetName("[P.origin] - [customname]")
@@ -1498,7 +1562,7 @@ datum/admins/var/obj/item/weapon/paper/admin/faxreply // var to hold fax replies
 
 		if(!P.stamped)
 			P.stamped = new
-		P.stamped += /obj/item/weapon/stamp/boss
+		P.stamped += /obj/item/stamp/boss
 		P.overlays += stampoverlay
 
 	var/obj/item/rcvdcopy

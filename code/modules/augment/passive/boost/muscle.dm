@@ -7,9 +7,13 @@
 	name = "mechanical muscles"
 	allowed_organs = list(BP_AUGMENT_R_LEG, BP_AUGMENT_L_LEG)
 	icon_state = "muscule"
-	desc = "Nanofiber tendons powered by an array of actuators to help the wearer mantain speed even while encumbered. You may want to install these in pairs to see a result."
+	desc = "Nanofiber tendons powered by an array of actuators increase the speed and agility of the user. You may want to install these in pairs to see a result."
+	discoverable = TRUE
 	var/obj/item/organ/internal/augment/boost/muscle/other //we need two for these
 
+/obj/item/organ/internal/augment/boost/muscle/proc/get_acrobatics_modifier()
+	if(!is_broken() && other && !other.is_broken())
+		return 1
 
 /obj/item/organ/internal/augment/boost/muscle/onInstall()
 
@@ -20,13 +24,19 @@
 	else if(organ_tag == BP_AUGMENT_R_LEG)
 		other = owner.internal_organs_by_name[BP_AUGMENT_L_LEG]
 	if(other && istype(other))
-		var/datum/skill_buff/augment/muscle/A
-		A = owner.buff_skill(buffs, 0, buffpath)
-		if(A && istype(A))
-			active = 1
-			other.active = 1
+		var/succesful = TRUE
+		if(owner.get_skill_value(SKILL_HAULING) < SKILL_PROF)
+			succesful = FALSE
+			var/datum/skill_buff/augment/muscle/A
+			A = owner.buff_skill(buffs, 0, buffpath)
+			if(A && istype(A))
+				succesful = TRUE
+				A.id = id
+
+		if(succesful)
 			other.other = src
-			A.id = id
+			other.active = TRUE
+			active = TRUE
 
 /obj/item/organ/internal/augment/boost/muscle/onRemove()
 	if(!active)
@@ -35,11 +45,13 @@
 	for(var/datum/skill_buff/augment/muscle/D in B)
 		if(D.id == id)
 			D.remove()
-			if(other)
-				other.active = 0
-				other.other = null
-				other = null
-			return
+			break
+
+	if(other)
+		other.active = FALSE
+		other.other = null
+		other = null
+	active = FALSE
 
 /obj/item/organ/internal/augment/boost/muscle/Destroy()
 	. = ..()

@@ -6,8 +6,8 @@
 	program_key_state = "generic_key"
 	program_menu_icon = "mail-closed"
 	size = 7
-	requires_ntnet = 1
-	available_on_ntnet = 1
+	requires_ntnet = TRUE
+	available_on_ntnet = TRUE
 	var/stored_login = ""
 	var/stored_password = ""
 	usage_flags = PROGRAM_ALL
@@ -39,8 +39,9 @@
 		NME.error = ""
 		NME.check_for_new_messages(1)
 
-/datum/computer_file/program/email_client/proc/new_mail_notify()
-	computer.visible_notification("You got mail!")
+/datum/computer_file/program/email_client/proc/new_mail_notify(var/notification_sound)
+	computer.visible_notification(notification_sound)
+	computer.audible_notification("sound/machines/ping.ogg")
 
 /datum/computer_file/program/email_client/process_tick()
 	..()
@@ -51,8 +52,8 @@
 
 	var/check_count = NME.check_for_new_messages()
 	if(check_count)
-		if(check_count == 2)
-			new_mail_notify()
+		if(check_count == 2 && !NME.current_account.notification_mute)
+			new_mail_notify(NME.current_account.notification_sound)
 		ui_header = "ntnrc_new.gif"
 	else
 		ui_header = "ntnrc_idle.gif"
@@ -83,7 +84,7 @@
 
 /datum/nano_module/email_client/proc/get_functional_drive()
 	var/datum/extension/interactive/ntos/os = get_extension(nano_host(), /datum/extension/interactive/ntos)
-	var/obj/item/weapon/stock_parts/computer/hard_drive/drive = os && os.get_component(/obj/item/weapon/stock_parts/computer/hard_drive)
+	var/obj/item/stock_parts/computer/hard_drive/drive = os && os.get_component(/obj/item/stock_parts/computer/hard_drive)
 	if(!drive || !drive.check_functionality())
 		error = "Error uploading file. Are you using a functional and NTOSv2-compliant device?"
 		return
@@ -109,7 +110,7 @@
 /datum/nano_module/email_client/proc/log_in()
 	var/list/id_login
 	var/atom/movable/A = nano_host()
-	var/obj/item/weapon/card/id/id = A.GetIdCard()
+	var/obj/item/card/id/id = A.GetIdCard()
 	if(!id && ismob(A.loc))
 		var/mob/M = A.loc
 		id = M.GetIdCard()
@@ -203,6 +204,7 @@
 
 	else if(istype(current_account))
 		data["current_account"] = current_account.login
+		data["notification_mute"] = current_account.notification_mute
 		if(addressbook)
 			var/list/all_accounts = list()
 			for(var/datum/computer_file/data/email_account/account in ntnet_global.email_accounts)
@@ -269,7 +271,7 @@
 	ui = SSnano.try_update_ui(user, src, ui_key, ui, data, force_open)
 	if (!ui)
 		ui = new(user, src, ui_key, "email_client.tmpl", "Email Client", 600, 450, state = state)
-		if(host.update_layout())
+		if(host?.update_layout())
 			ui.auto_update_layout = 1
 		ui.set_auto_update(1)
 		ui.set_initial_data(data)
@@ -301,7 +303,7 @@
 		return
 	download_progress = min(download_progress + netspeed, downloading.size)
 	if(download_progress >= downloading.size)
-		var/obj/item/weapon/stock_parts/computer/hard_drive/drive = get_functional_drive()
+		var/obj/item/stock_parts/computer/hard_drive/drive = get_functional_drive()
 		if(!drive)
 			downloading = null
 			download_progress = 0
@@ -487,11 +489,21 @@
 		error = "Your password has been successfully changed!"
 		return 1
 
+	if(href_list["set_notification"])
+		var/new_notification = sanitize(input(user, "Enter your desired notification sound:", "Set Notification", current_account.notification_sound) as text|null)
+		if(new_notification && current_account)
+			current_account.notification_sound = new_notification
+		return 1
+
+	if(href_list["mute"])
+		current_account.notification_mute = !current_account.notification_mute
+		return 1
+
 	// The following entries are Modular Computer framework only, and therefore won't do anything in other cases (like AI View)
 
 	if(href_list["save"])
 		// Fully dependant on modular computers here.
-		var/obj/item/weapon/stock_parts/computer/hard_drive/drive = get_functional_drive()
+		var/obj/item/stock_parts/computer/hard_drive/drive = get_functional_drive()
 		if(!drive)
 			return 1
 
@@ -513,7 +525,7 @@
 		return 1
 
 	if(href_list["addattachment"])
-		var/obj/item/weapon/stock_parts/computer/hard_drive/drive = get_functional_drive()
+		var/obj/item/stock_parts/computer/hard_drive/drive = get_functional_drive()
 		msg_attachment = null
 		if(!drive)
 			return 1
@@ -553,7 +565,7 @@
 	if(href_list["downloadattachment"])
 		if(!current_account || !current_message || !current_message.attachment)
 			return 1
-		var/obj/item/weapon/stock_parts/computer/hard_drive/drive = get_functional_drive()
+		var/obj/item/stock_parts/computer/hard_drive/drive = get_functional_drive()
 		if(!drive)
 			return 1
 

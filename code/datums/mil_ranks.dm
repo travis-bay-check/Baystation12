@@ -24,7 +24,7 @@ var/datum/mil_branches/mil_branches = new()
  *  Retrieve branch object by branch name
  */
 /datum/mil_branches/proc/get_branch(var/branch_name)
-	if(ispath(branch_name))
+	if(ispath(branch_name, /datum/mil_branch))
 		var/datum/mil_branch/branch = branch_name
 		branch_name = initial(branch.name)
 	if(branch_name && branch_name != "None")
@@ -110,6 +110,8 @@ var/datum/mil_branches/mil_branches = new()
 
 	// Email addresses will be created under this domain name. Mostly for the looks.
 	var/email_domain = "freemail.net"
+
+	var/allow_custom_email = FALSE
 
 	var/list/min_skill
 

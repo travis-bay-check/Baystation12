@@ -75,8 +75,9 @@ GLOBAL_DATUM_INIT(traitors, /datum/antagonist/traitor, new)
 		if(istype(traitor_mob, /mob/living/silicon/robot))
 			var/mob/living/silicon/robot/R = traitor_mob
 			R.SetLockdown(0)
-			R.emagged = 1 // Provides a traitor robot with its module's emag item
+			R.emagged = TRUE // Provides a traitor robot with its module's emag item
 			R.verbs |= /mob/living/silicon/robot/proc/ResetSecurityCodes
+			R.status_flags &= ~CANWEAKEN // Apply optical matrix protection (Flash resistance)
 		return 1
 
 	if(!..())
@@ -85,23 +86,17 @@ GLOBAL_DATUM_INIT(traitors, /datum/antagonist/traitor, new)
 	spawn_uplink(traitor_mob)
 	give_intel(traitor_mob)
 
-/datum/antagonist/traitor/proc/give_intel(mob/living/traitor_mob)
-	give_collaborators(traitor_mob)
-	give_codewords(traitor_mob)
+/datum/antagonist/traitor/unequip(mob/living/carbon/human/player)
+	if (istype(player, /mob/living/silicon/robot))
+		var/mob/living/silicon/robot/R = player
+		if (!R.flash_protected)
+			R.status_flags &= ~CANWEAKEN
+		return TRUE
 
-/datum/antagonist/traitor/proc/give_collaborators(mob/living/traitor_mob)
-	var/list/dudes = list()
-	for(var/mob/living/carbon/human/man in GLOB.player_list)
-		if(man.client)
-			var/decl/cultural_info/culture = man.get_cultural_value(TAG_FACTION)
-			if(culture && prob(culture.subversive_potential))
-				dudes += man
-		dudes -= traitor_mob
-	if(LAZYLEN(dudes))
-		var/mob/living/carbon/human/M = pick(dudes)
-		to_chat(traitor_mob, "We have received credible reports that [M.real_name] might be willing to help our cause. If you need assistance, consider contacting them.")
-		traitor_mob.StoreMemory("<b>Potential Collaborator</b>: [M.real_name]", /decl/memory_options/system)
-		to_chat(M, "<span class='warning'>The subversive potential of your faction has been noticed, and you may be contacted for assistance soon...</span>")
+	return ..()
+
+/datum/antagonist/traitor/proc/give_intel(mob/living/traitor_mob)
+	give_codewords(traitor_mob)
 
 /datum/antagonist/traitor/proc/give_codewords(mob/living/traitor_mob)
 	to_chat(traitor_mob, "<u><b>Your employers provided you with the following information on how to identify possible allies:</b></u>")

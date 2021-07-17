@@ -5,6 +5,7 @@
 
 #define TRANSITIONEDGE 7 // Distance from edge to move to another z-level.
 #define RUIN_MAP_EDGE_PAD 15
+#define LANDING_ZONE_RADIUS 15 // Used for autoplacing landmarks on exoplanets
 
 // Invisibility constants.
 #define INVISIBILITY_LIGHTING    20
@@ -75,10 +76,11 @@
 #define DEFAULT_JOB_TYPE /datum/job/assistant
 
 //Area flags, possibly more to come
-#define AREA_FLAG_RAD_SHIELDED      1 // shielded from radiation, clearly
-#define AREA_FLAG_EXTERNAL          2 // External as in exposed to space, not outside in a nice, green, forest
-#define AREA_FLAG_ION_SHIELDED      4 // shielded from ionospheric anomalies as an FBP / IPC
-#define AREA_FLAG_IS_NOT_PERSISTENT 8 // SSpersistence will not track values from this area.
+#define AREA_FLAG_RAD_SHIELDED      1  // shielded from radiation, clearly
+#define AREA_FLAG_EXTERNAL          2  // External as in exposed to space, not outside in a nice, green, forest
+#define AREA_FLAG_ION_SHIELDED      4  // shielded from ionospheric anomalies as an FBP / IPC
+#define AREA_FLAG_IS_NOT_PERSISTENT 8  // SSpersistence will not track values from this area.
+#define AREA_FLAG_NO_MODIFY         16 // turf in this area cannot be dismantled.
 
 //Map template flags
 #define TEMPLATE_FLAG_ALLOW_DUPLICATES 1 // Lets multiple copies of the template to be spawned
@@ -86,6 +88,9 @@
 #define TEMPLATE_FLAG_CLEAR_CONTENTS   4 // if it should destroy objects it spawns on top of
 #define TEMPLATE_FLAG_NO_RUINS         8 // if it should forbid ruins from spawning on top of it
 #define TEMPLATE_FLAG_NO_RADS          16// Removes all radiation from the template after spawning.
+
+//Ruin map template flags
+#define TEMPLATE_FLAG_RUIN_STARTS_DISALLOWED 32 // Ruin is not available during spawning unless another ruin permits it.
 
 // Convoluted setup so defines can be supplied by Bay12 main server compile script.
 // Should still work fine for people jamming the icons into their repo.
@@ -108,10 +113,10 @@
 #define WALL_CAN_OPEN 1
 #define WALL_OPENING 2
 
-#define BOMBCAP_DVSTN_RADIUS (GLOB.max_explosion_range/4)
-#define BOMBCAP_HEAVY_RADIUS (GLOB.max_explosion_range/2)
-#define BOMBCAP_LIGHT_RADIUS GLOB.max_explosion_range
-#define BOMBCAP_FLASH_RADIUS (GLOB.max_explosion_range*1.5)
+#define BOMBCAP_DVSTN_RADIUS (config.max_explosion_range / 4)
+#define BOMBCAP_HEAVY_RADIUS (config.max_explosion_range / 2)
+#define BOMBCAP_LIGHT_RADIUS (config.max_explosion_range)
+#define BOMBCAP_FLASH_RADIUS (config.max_explosion_range * 1.5)
 									// NTNet module-configuration values. Do not change these. If you need to add another use larger number (5..6..7 etc)
 #define NTNET_SOFTWAREDOWNLOAD 1 	// Downloads of software from NTNet
 #define NTNET_PEERTOPEER 2			// P2P transfers of files between devices
@@ -271,3 +276,20 @@
 #ifndef HTTP_POST_DLL_LOCATION
 #define HTTP_POST_DLL_LOCATION (world.system_type == MS_WINDOWS ? WINDOWS_HTTP_POST_DLL_LOCATION : UNIX_HTTP_POST_DLL_LOCATION)
 #endif
+
+//Misc text define. Does 4 spaces. Used as a makeshift tabulator.
+#define FOURSPACES "&nbsp;&nbsp;&nbsp;&nbsp;"
+#define CLIENT_FROM_VAR(I) (ismob(I) ? I:client : (isclient(I) ? I : (istype(I, /datum/mind) ? I:current?:client : null)))
+
+#define INCREMENT_WORLD_Z_SIZE world.maxz++; if (SSzcopy.zlev_maximums.len) { SSzcopy.calculate_zstack_limits() }
+
+//Semantic; usage intent of variable
+#define EMPTY_BITFIELD 0
+
+//-- Masks for /atom/var/init_flags --
+//- machinery
+#define INIT_MACHINERY_PROCESS_SELF 0x1
+#define INIT_MACHINERY_PROCESS_COMPONENTS 0x2
+#define INIT_MACHINERY_PROCESS_ALL 0x3
+//--
+

@@ -10,7 +10,8 @@
 	var/list/valid_targets = list(
 		/mob/living/carbon/human,
 		/mob/living/simple_animal,
-		/mob/living/carbon/slime
+		/mob/living/carbon/slime,
+		/mob/living/carbon/alien/chorus
 	)
 
 /obj/item/device/scanner/xenobio/is_valid_scan_target(atom/O)
@@ -41,8 +42,10 @@
 		var/mob/living/carbon/human/H = target
 		. += "Data for [H]:"
 		. += "Species:\t[H.species]"
-		. += "Breathes:\t[gas_data.name[H.species.breath_type]]"
-		. += "Exhales:\t[gas_data.name[H.species.exhale_type]]"
+		if(H.species.breath_type)
+			. += "Breathes:\t[gas_data.name[H.species.breath_type]]"
+		if(H.species.exhale_type)
+			. += "Exhales:\t[gas_data.name[H.species.exhale_type]]"
 		. += "Known toxins:\t[english_list(H.species.poison_types)]"
 		. += "Temperature comfort zone:\t[H.species.cold_discomfort_level] K to [H.species.heat_discomfort_level] K"
 		. += "Pressure comfort zone:\t[H.species.warning_low_pressure] kPa to [H.species.warning_high_pressure] kPa"
@@ -50,9 +53,12 @@
 		var/mob/living/simple_animal/A = target
 		. += "Data for [A]:"
 		. += "Species:\t[initial(A.name)]"
-		. += "Breathes:\t[list_gases(A.min_gas)]"
-		. += "Known toxins:\t[list_gases(A.max_gas)]"
-		. += "Temperature comfort zone:\t[A.minbodytemp] K to [A.maxbodytemp] K"
+		if(A.min_gas)
+			. += "Breathes:\t[list_gases(A.min_gas)]"
+		if(A.max_gas)
+			. += "Known toxins:\t[list_gases(A.max_gas)]"
+		if(A.minbodytemp && A.maxbodytemp)
+			. += "Temperature comfort zone:\t[A.minbodytemp] K to [A.maxbodytemp] K"
 		var/area/map = locate(/area/overmap)
 		for(var/obj/effect/overmap/visitable/sector/exoplanet/P in map)
 			if((A in P.animals) || is_type_in_list(A, P.repopulate_types))
@@ -98,6 +104,8 @@
 		if (T.cores > 1)
 			. += "Anomalous slime core amount detected."
 		. += "Growth progress:\t[T.amount_grown]/10."
+	else if(istype(target, /mob/living/carbon/alien/chorus))
+		. += "Warning. Biological contaminant detected. Limit contact."
 	else
 		. += "Incompatible life form, analysis failed."
 
